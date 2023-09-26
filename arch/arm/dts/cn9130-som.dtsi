@@ -1,0 +1,130 @@
+/*
+ * Copyright (C) 2020 SolidRun ltd.
+ *
+ * SPDX-License-Identifier:	GPL-2.0
+ * https://spdx.org/licenses
+ */
+
+/* Device Tree file for the SolidRun cn1930 based com express type 7, cp0  */
+
+#include <dt-bindings/gpio/gpio.h>
+#include "armada-common.dtsi"
+#include "armada-ap807.dtsi"
+#include "armada-ap80x-quad.dtsi"
+
+/* This defines used to calculate the base address of each CP */
+#define CP110_BASE_OFFSET		(0xf2000000)
+#define CP110_SPACE_SIZE		(0x02000000)
+#define CP110_BASE			(CP110_BASE_OFFSET + \
+						(CP110_NUM * CP110_SPACE_SIZE))
+
+#define CP110_PCIE_MEM_SIZE(iface)	((iface == 0) ? 0x1ff00000 : 0xf00000)
+#define CP110_PCIE_BUS_MEM_CFG		(0x82000000)
+
+/* CP110-0 Settings */
+#define CP110_NAME			cp0
+#define CP110_NUM			0
+#define CP110_PCIEx_CPU_MEM_BASE(iface)	((iface == 0) ? 0xc0000000 : \
+					 (0xe0000000 + (iface - 1) * 0x1000000))
+#define CP110_PCIEx_BUS_MEM_BASE(iface)	(CP110_PCIEx_CPU_MEM_BASE(iface))
+
+#include "armada-cp110.dtsi"
+
+#include "cn9130-db-dev-info.dtsi"
+
+/ {
+	model = "SolidRun CN9130 based SOM";
+	compatible =	"marvell,armada70x0", "marvell,armada-ap806-quad",
+			"marvell,armada-ap806", "marvell,cn9030";
+	aliases {
+		fuse0 = &ap_hd_efuse0;	/* banks 0-63 RW */
+		fuse1 = &ap_ld_efuse0;	/* bank 64 RO */
+		fuse2 = &ap_ld_efuse1;	/* bank 65 RW */
+		// fuse3 = &cp0_ld_efuse0;	/* bank 66 RO */
+		// fuse4 = &cp0_ld_efuse1;	/* bank 67 RW */
+	};
+
+	cp0 {
+		config-space {
+			cp0_reg_usb3_vbus0: cp0_usb3_vbus@0 {
+				compatible = "regulator-fixed";
+				regulator-name = "cp0-xhci0-vbus";
+				regulator-min-microvolt = <5000000>;
+				regulator-max-microvolt = <5000000>;
+				startup-delay-us = <100000>;
+				regulator-force-boot-off;
+			};
+
+			cp0_reg_usb3_vbus1: cp0_usb3_vbus@1 {
+				compatible = "regulator-fixed";
+				regulator-name = "cp0-xhci1-vbus";
+				regulator-min-microvolt = <5000000>;
+				regulator-max-microvolt = <5000000>;
+				startup-delay-us = <100000>;
+				regulator-force-boot-off;
+			};
+			cp0_reg_usb3_current_lim0:cp0_usb3_current_limiter@0 {
+				compatible = "regulator-fixed";
+				regulator-min-microamp = <900000>;
+				regulator-max-microamp = <900000>;
+				regulator-force-boot-off;
+			};
+
+			cp0_reg_usb3_current_lim1: cp0_usb3_current_limiter@1 {
+				compatible = "regulator-fixed";
+				regulator-min-microamp = <900000>;
+				regulator-max-microamp = <900000>;
+				regulator-force-boot-off;
+			};
+		};
+	};
+};
+
+&cp0_rtc {
+	status = "okay";
+};
+
+&ap_hd_efuse0 {
+	status = "okay";
+};
+
+&ap_ld_efuse0 {
+	status = "okay";
+};
+
+&ap_ld_efuse1 {
+	status = "okay";
+};
+
+// /*  CP0  */
+// &cp0_ld_efuse0 {
+// 	status = "okay";
+// };
+//
+// &cp0_ld_efuse1 {
+// 	status = "okay";
+// };
+
+&cp0_utmi0 {
+	status = "okay";
+};
+
+&cp0_utmi1 {
+	status = "okay";
+};
+
+&cp0_usb3_0 {
+	status = "okay";
+};
+
+&cp0_usb3_1 {
+	status = "okay";
+};
+
+&cp0_gpio1 { /* Not functional in u-boot */
+	phy_reset { /* Release carrier board phy reset */
+		gpio-hog;
+		gpios = <12 GPIO_ACTIVE_HIGH>;
+		output-high;
+	};
+};
