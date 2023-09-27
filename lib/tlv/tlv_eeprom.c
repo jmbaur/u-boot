@@ -670,16 +670,16 @@ int read_tlvinfo_tlv_eeprom(void *eeprom, struct tlvinfo_header **hdr,
  *
  *  This function must be called after relocation.
  */
-int mac_read_from_eeprom(void)
+int _mac_read_from_eeprom(int devnum)
 {
 	unsigned int i;
+	static unsigned int j = 0;
 	int eeprom_index;
 	struct tlvinfo_tlv *eeprom_tlv;
 	int maccount;
 	u8 macbase[6];
 	u8 eeprom[TLV_INFO_MAX_LEN];
 	struct tlvinfo_header *eeprom_hdr = to_header(eeprom);
-	int devnum = 0; // TODO: support multiple EEPROMs
 
 	puts("EEPROM: ");
 
@@ -708,7 +708,8 @@ int mac_read_from_eeprom(void)
 			sprintf(ethaddr, "%02X:%02X:%02X:%02X:%02X:%02X",
 				macbase[0], macbase[1], macbase[2],
 				macbase[3], macbase[4], macbase[5]);
-			sprintf(enetvar, i ? "eth%daddr" : "ethaddr", i);
+			sprintf(enetvar, j ? "eth%daddr" : "ethaddr", j);
+			j++;
 			/* Only initialize environment variables that are blank
 			 * (i.e. have not yet been set)
 			 */
@@ -732,6 +733,18 @@ int mac_read_from_eeprom(void)
 
 	printf("%s v%u len=%u\n", eeprom_hdr->signature, eeprom_hdr->version,
 	       be16_to_cpu(eeprom_hdr->totallen));
+
+	return 0;
+}
+int mac_read_from_eeprom(void)
+{
+	int ret[2];
+
+	ret[0] = _mac_read_from_eeprom(0);
+	ret[1] = _mac_read_from_eeprom(1);
+
+	if (!ret[0] && !ret[1])
+		return ret[0];
 
 	return 0;
 }

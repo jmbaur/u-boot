@@ -235,11 +235,11 @@
 		pagesize = <8>;
 	};
 
-	/* M24C02-WMN6TP */
+	/* M24C02-WMN6TP / ST24C02WP */
 	som_eeprom@53 {
 		compatible = "atmel,24c02";
 		reg = <0x53>;
-		pagesize = <16>;
+		pagesize = <8>;
 	};
 };
 

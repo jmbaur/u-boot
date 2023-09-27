@@ -190,7 +190,9 @@ static void get_fdtfile_from_tlv_eeprom(u8 *buffer, size_t length) {
 			}
 		} else {
 			// parse sku - processor or carrier indicated at index 2-6
-			if(memcmp(&sku[2], "CFCB", 4) == 0) {
+			if(memcmp(&sku[2], "S9130", 4) == 0) {
+				// SoM - S913x
+			} else if(memcmp(&sku[2], "CFCB", 4) == 0) {
 				// Clearfog Base
 				strcpy(carrier, "cf-base");
 
@@ -202,20 +204,18 @@ static void get_fdtfile_from_tlv_eeprom(u8 *buffer, size_t length) {
 
 				// Carrier has no extra CPs
 				strcpy(cpu, "9130");
-			} else if(memcmp(&sku[2], "C", 1) == 0) {
-				// COM-Express 7 - C9130 / C9131 / C9132 ...
-				strcpy(carrier, "cex7");
-
-				// COM can have additional CPs indicated in next 4 chars
-				memcpy(cpu, &sku[2+1], 4);
-			} else if(memcmp(&sku[2], "S9130", 4) == 0) {
-				// SoM - S913x
 			} else if(memcmp(&sku[2], "CFSW", 4) == 0) {
 				// SolidWan SOM S9131
 				strcpy(carrier, "cf-solidwan");
 
 				// Carrier has 1 extra CPs
 				strcpy(cpu, "9131");
+			} else if(memcmp(&sku[2], "C", 1) == 0) {
+				// COM-Express 7 - C9130 / C9131 / C9132 ...
+				strcpy(carrier, "cex7");
+
+				// COM can have additional CPs indicated in next 4 chars
+				memcpy(cpu, &sku[2+1], 4);
 			} else {
 				pr_err("%s: did not recognise SKU %s!\n", __func__, sku);
 			}
@@ -247,6 +247,9 @@ int board_late_init(void)
 	get_fdtfile_from_tlv_eeprom(fdtfile, sizeof(fdtfile));
 	if (!env_get("fdtfile"))
 		env_set("fdtfile", fdtfile);
+
+	/* read MAC addresses and save in environment */
+	mac_read_from_eeprom();
 
 #if CONFIG_IS_ENABLED(OCTEONTX_SERIAL_BOOTCMD)
 	if (init_bootcmd_console())
