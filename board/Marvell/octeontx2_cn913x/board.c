@@ -22,6 +22,7 @@
 #ifdef CONFIG_ARMV8_SEC_FIRMWARE_SUPPORT
 #include <asm/armv8/sec_firmware.h>
 #endif
+#include <miiphy.h>
 
 #define CP_USB20_BASE_REG(cp, p)	(MVEBU_REGS_BASE_CP(0, cp) + \
 						0x00580000 + 0x1000 * (p))
@@ -256,6 +257,67 @@ int board_late_init(void)
 		printf("Failed to init bootcmd input\n");
 #endif
 	fdt_get_board_info();
+	return 0;
+}
+
+
+/*
+ * Wrapper around miphy_read & miiphy_write to allow modifying by bitmask
+ */
+static inline int miiphy_modify(const char *devname, unsigned char addr, unsigned char reg, unsigned short value, unsigned short mask) {
+	unsigned short old, new;
+
+	if (miiphy_read(devname, addr, reg, &old)) {
+		printf("read failed ...\n");
+		return 1;
+	}
+
+	new = old & (~mask);
+	new |= (value & mask);
+
+	return miiphy_write(devname, addr, reg, new);
+}
+
+/*
+ * CN9131 SolidWAN has a PHY address conflict between SoM and Carrier.
+ *
+ * Configure PHY(s) at address 0 for SGMII auto-negotiation between MAC and PHY,
+ */
+static void solidwan_phy_init() {
+	const char *mii_bus_name = "cp0-mdio@12a200";
+	struct mii_dev *bus;
+	int ret = 0;
+
+	bus = miiphy_get_dev_by_name(mii_bus_name);
+	if (!bus) {
+		printf("Warning: Failed to get \"%s\", can't configure phy for eth1!\n", mii_bus_name);
+		return;
+	}
+
+	ret |= miiphy_write(mii_bus_name, 0x00, 0x16, 0x0001); // select page 1
+	ret |= miiphy_modify(mii_bus_name, 0x00, 0x00, 0x1000, 0x1000); // set page 1 register 0 bit 12=1
+	ret |= miiphy_modify(mii_bus_name, 0x00, 0x1a, 0x0000, 0x0040); // set page 1 register 26 bit 6=0
+	ret |= miiphy_modify(mii_bus_name, 0x00, 0x00, 0x8000, 0x8000); // set page 1 register 0 bit 15=1
+	udelay(1000); // wait for sw-reset to complete
+	ret |= miiphy_write(mii_bus_name, 0x00, 0x16, 0x0012); // select page 18
+	ret |= miiphy_modify(mii_bus_name, 0x00, 0x14, 0x0001, 0x0007); // set page 18 register 20 bits [2:0]=001
+	ret |= miiphy_modify(mii_bus_name, 0x00, 0x14, 0x8000, 0x8000); // set page 18 register 20 bit 15=1
+	udelay(1000); // wait for sw-reset to complete
+
+	if (ret)
+		printf("Warning: Failed to configure phy for eth1!\n");
+}
+
+int last_stage_init(void)
+{
+	const char *fdtfile;
+
+	fdtfile = env_get("fdtfile");
+	if (strcmp(fdtfile, "marvell/cn9131-cf-solidwan.dtb") == 0) {
+		printf("Applying eth1 phy workaround ...\n");
+		solidwan_phy_init();
+	}
+
 	return 0;
 }
 

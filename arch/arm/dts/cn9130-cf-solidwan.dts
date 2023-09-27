@@ -299,8 +299,12 @@
 
 /* SRDS #3 - 1GE PHY over SGMII */
 &cp0_eth1 {
-	phy = <&cp0_phy0>;
+	/*
+	 * Due to mdio address conflict use SGMII Auto-Negotation
+	 * between MAC and PHY only, skipping MDIO.
+	 */
 	phy-mode = "sgmii";
+	managed = "in-band-status";
 	/*
 	 * All Carrier PHYs share single reset line
 	 * phy-reset-gpios = <&cp0_gpio1 7 GPIO_ACTIVE_LOW>; // MPP39
@@ -339,10 +343,10 @@
 	status = "okay";
 	pinctrl-0 = <&cp0_mdio_pins>;
 
-	cp0_phy0: ethernet-phy@0 {
-		marvell,reg-init = <3 16 0 0x1017>;
-		reg = <0>;
-	};
+	/*
+	 * SoM + Carrier both have PHY at address 0,
+	 * ignore MDIO and use SGMII Auto-Negotation between MAC and PHY.
+	 */
 
 	cp0_phy1: ethernet-phy@1 {
 		marvell,reg-init = <3 16 0 0x1017>;
