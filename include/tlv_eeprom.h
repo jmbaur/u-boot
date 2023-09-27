@@ -65,7 +65,8 @@ struct __attribute__ ((__packed__)) tlvinfo_tlv {
 #define TLV_CODE_VENDOR_EXT     0xFD
 #define TLV_CODE_CRC_32         0xFE
 
-#if CONFIG_IS_ENABLED(CMD_TLV_EEPROM)
+/* how many EEPROMs can be used */
+#define TLV_MAX_DEVICES			2
 
 /**
  * read_tlv_eeprom - Read the EEPROM binary data from the hardware
@@ -84,11 +85,12 @@ int read_tlv_eeprom(void *eeprom, int offset, int len, int dev);
  * write_tlv_eeprom - Write the entire EEPROM binary data to the hardware
  * @eeprom: Pointer to buffer to hold the binary data
  * @len   : Maximum size of buffer
+ * @dev   : EEPROM device to write
  *
  * Note: this routine does not validate the EEPROM data.
  *
  */
-int write_tlv_eeprom(void *eeprom, int len);
+int write_tlv_eeprom(void *eeprom, int len, int dev);
 
 /**
  * read_tlvinfo_tlv_eeprom - Read the TLV from EEPROM, and validate
@@ -110,26 +112,50 @@ int write_tlv_eeprom(void *eeprom, int len);
 int read_tlvinfo_tlv_eeprom(void *eeprom, struct tlvinfo_header **hdr,
 			    struct tlvinfo_tlv **first_entry, int dev);
 
-#else /* !CONFIG_IS_ENABLED(CMD_TLV_EEPROM) */
+/**
+ * Write TLV data to the EEPROM.
+ *
+ * - Only writes length of actual tlv data
+ * - updates checksum
+ *
+ * @eeprom: Pointer to buffer to hold the binary data. Must point to a buffer
+ *          of size at least TLV_INFO_MAX_LEN.
+ * @dev   : EEPROM device to write
+ *
+ */
+int write_tlvinfo_tlv_eeprom(void *eeprom, int dev);
 
-static inline int read_tlv_eeprom(void *eeprom, int offset, int len, int dev)
-{
-	return -ENOTSUPP;
-}
+/**
+ *  tlvinfo_find_tlv
+ *
+ *  This function finds the TLV with the supplied code in the EERPOM.
+ *  An offset from the beginning of the EEPROM is returned in the
+ *  eeprom_index parameter if the TLV is found.
+ */
+bool tlvinfo_find_tlv(u8 *eeprom, u8 tcode, int *eeprom_index);
 
-static inline int write_tlv_eeprom(void *eeprom, int len)
-{
-	return -ENOTSUPP;
-}
+/**
+ *  tlvinfo_update_crc
+ *
+ *  This function updates the CRC-32 TLV. If there is no CRC-32 TLV, then
+ *  one is added. This function should be called after each update to the
+ *  EEPROM structure, to make sure the CRC is always correct.
+ *
+ * @eeprom: Pointer to buffer to hold the binary data. Must point to a buffer
+ *          of size at least TLV_INFO_MAX_LEN.
+ */
+void tlvinfo_update_crc(u8 *eeprom);
 
-static inline int
-read_tlvinfo_tlv_eeprom(void *eeprom, struct tlvinfo_header **hdr,
-			struct tlvinfo_tlv **first_entry, int dev)
-{
-	return -ENOTSUPP;
-}
-
-#endif /* CONFIG_IS_ENABLED(CMD_TLV_EEPROM) */
+/**
+ *  Validate the checksum in the provided TlvInfo EEPROM data. First,
+ *  verify that the TlvInfo header is valid, then make sure the last
+ *  TLV is a CRC-32 TLV. Then calculate the CRC over the EEPROM data
+ *  and compare it to the value stored in the EEPROM CRC-32 TLV.
+ *
+ * @eeprom: Pointer to buffer to hold the binary data. Must point to a buffer
+ *          of size at least TLV_INFO_MAX_LEN.
+ */
+bool tlvinfo_check_crc(u8 *eeprom);
 
 /**
  *  is_valid_tlvinfo_header
@@ -147,6 +173,18 @@ static inline bool is_valid_tlvinfo_header(struct tlvinfo_header *hdr)
 	return ((strcmp(hdr->signature, TLV_INFO_ID_STRING) == 0) &&
 		(hdr->version == TLV_INFO_VERSION) &&
 		(be16_to_cpu(hdr->totallen) <= TLV_TOTAL_LEN_MAX));
+}
+
+/**
+ *  is_valid_tlv
+ *
+ *  Perform basic sanity checks on a TLV field. The TLV is pointed to
+ *  by the parameter provided.
+ *      1. The type code is not reserved (0x00 or 0xFF)
+ */
+static inline bool is_valid_tlvinfo_entry(struct tlvinfo_tlv *tlv)
+{
+	return((tlv->type != 0x00) && (tlv->type != 0xFF));
 }
 
 #endif /* __TLV_EEPROM_H_ */
