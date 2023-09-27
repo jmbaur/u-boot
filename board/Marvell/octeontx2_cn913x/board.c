@@ -9,11 +9,13 @@
 #include <common.h>
 #include <console.h>
 #include <dm.h>
+#include <env.h>
 #include <i2c.h>
 #include <asm/io.h>
 #include <asm/arch/cpu.h>
 #include <asm/arch/soc.h>
 #include <power/regulator.h>
+#include <tlv_eeprom.h>
 #ifdef CONFIG_BOARD_CONFIG_EEPROM
 #include <mvebu/cfg_eeprom.h>
 #endif
@@ -58,12 +60,22 @@ int board_init(void)
 	/* address of boot parameters */
 	gd->bd->bi_boot_params = CONFIG_SYS_SDRAM_BASE + 0x100;
 
+	writel(0xfbfff7f, 0xf2440144); //define output enable
+	writel(0x0000000, 0xf2440140); //define output value 0
+
+
 #if (CONFIG_IS_ENABLED(BOARD_CONFIG_EEPROM))
 		cfg_eeprom_init();
 #endif
 
 	return 0;
 }
+
+int board_fix_fdt (void *fdt)
+{
+        return 0;
+}
+
 
 #if (CONFIG_IS_ENABLED(OCTEONTX_SERIAL_BOOTCMD) ||	\
 	CONFIG_IS_ENABLED(OCTEONTX_SERIAL_PCIE_CONSOLE)) &&	\
@@ -111,9 +123,131 @@ static int init_bootcmd_console(void)
 	return ret;
 }
 #endif
+
+/*
+ * Read TLV formatted data from eeprom.
+ * Only read as much data as indicated by the TLV header.
+ */
+// TODO: this should be a library function?!
+static bool get_tlvinfo_from_eeprom(int index, u8 *buffer, size_t length) {
+	struct tlvinfo_header *eeprom_hdr = (struct tlvinfo_header *) buffer;
+	struct tlvinfo_tlv *eeprom_tlv = (struct tlvinfo_tlv *) &buffer[sizeof(struct tlvinfo_header)];
+
+	if(length < TLV_INFO_HEADER_SIZE) {
+		pr_err("%s: buffer too small for tlv header!\n", __func__);
+		return false;
+	}
+	if(read_tlv_eeprom((void *)eeprom_hdr, 0, TLV_INFO_HEADER_SIZE, index) != 0) {
+		pr_err("%s: failed to read from eeprom!\n", __func__);
+		return false;
+	}
+	if(!is_valid_tlvinfo_header(eeprom_hdr)) {
+		pr_warn("%s: invalid tlv header!\n", __func__);
+		return false;
+	}
+	if(length - TLV_INFO_HEADER_SIZE < be16_to_cpu(eeprom_hdr->totallen)) {
+		pr_err("%s: buffer too small for tlv data!\n", __func__);
+		return false;
+	}
+	if(read_tlv_eeprom((void *)eeprom_tlv, sizeof(struct tlvinfo_header), be16_to_cpu(eeprom_hdr->totallen), index) != 0) {
+		pr_err("%s: failed to read from eeprom!\n", __func__);
+		return false;
+	}
+
+	return true;
+}
+
+static void get_fdtfile_from_tlv_eeprom(u8 *buffer, size_t length) {
+	char cpu[5] = {0};
+	char carrier[12] = {0};
+	static u8 eeprom[TLV_INFO_MAX_LEN];
+	char sku[257];
+
+	for(int i = 0; i < 2;i++) {
+		// read eeprom
+		if(!get_tlvinfo_from_eeprom(i, eeprom, sizeof(eeprom))) {
+			pr_info("%s: failed to read eeprom %d\n", __func__, i);
+			continue;
+		}
+
+		// read sku
+		if(!tlvinfo_read_tlv(eeprom, TLV_CODE_PART_NUMBER, sku, sizeof(sku))) {
+			pr_warn("%s: could not find sku in eeprom\n", __func__);
+			continue;
+		}
+		pr_debug("%s: read sku %s\n", __func__, sku);
+
+		if(memcmp(&sku[0], "VT", 2) == 0) {
+			// parse sku - processor or carrier indicated at index 2-6
+			if(memcmp(&sku[2], "CFCB", 4) == 0) {
+				// AIR-300 Carrier
+				strcpy(carrier, "vt-air-300");
+
+				// #CPs on carrier indicated by next 4 chars
+				memcpy(cpu, &sku[2+4], 4);
+			} else {
+				pr_err("%s: did not recognise SKU %s!\n", __func__, sku);
+			}
+		} else {
+			// parse sku - processor or carrier indicated at index 2-6
+			if(memcmp(&sku[2], "CFCB", 4) == 0) {
+				// Clearfog Base
+				strcpy(carrier, "cf-base");
+
+				// Carrier has no extra CPs
+				strcpy(cpu, "9130");
+			} else if(memcmp(&sku[2], "CFCP", 4) == 0) {
+				// Clearfog Pro
+				strcpy(carrier, "cf-pro");
+
+				// Carrier has no extra CPs
+				strcpy(cpu, "9130");
+			} else if(memcmp(&sku[2], "C", 1) == 0) {
+				// COM-Express 7 - C9130 / C9131 / C9132 ...
+				strcpy(carrier, "cex7");
+
+				// COM can have additional CPs indicated in next 4 chars
+				memcpy(cpu, &sku[2+1], 4);
+			} else if(memcmp(&sku[2], "S9130", 4) == 0) {
+				// SoM - S913x
+			} else if(memcmp(&sku[2], "CFSW", 4) == 0) {
+				// SolidWan SOM S9131
+				strcpy(carrier, "cf-solidwan");
+
+				// Carrier has 1 extra CPs
+				strcpy(cpu, "9131");
+			} else {
+				pr_err("%s: did not recognise SKU %s!\n", __func__, sku);
+			}
+		}
+	}
+
+	if(!cpu[0]) {
+		pr_err("%s: could not identify SoC, defaulting to %s!\n", __func__, "CN9130");
+		strcpy(cpu, "9130");
+	}
+
+	if(!carrier[0]) {
+		pr_err("%s: could not identify carrier, defaulting to %s!\n", __func__, "Clearfog Pro");
+		strcpy(carrier, "cf-pro");
+	}
+
+	// assemble fdtfile
+	if(snprintf(buffer, length, "marvell/cn%s-%s.dtb", cpu, carrier) >= length) {
+		pr_err("%s: fdtfile buffer too small, result truncated!\n", __func__);
+	}
+}
+
 u64 fdt_get_board_info(void);
 int board_late_init(void)
 {
+	char fdtfile[32] = {0};
+
+	// identify device
+	get_fdtfile_from_tlv_eeprom(fdtfile, sizeof(fdtfile));
+	if (!env_get("fdtfile"))
+		env_set("fdtfile", fdtfile);
+
 #if CONFIG_IS_ENABLED(OCTEONTX_SERIAL_BOOTCMD)
 	if (init_bootcmd_console())
 		printf("Failed to init bootcmd input\n");

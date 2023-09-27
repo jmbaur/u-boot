@@ -231,15 +231,23 @@ dtb-$(CONFIG_ARCH_MVEBU) +=			\
 	armada-xp-theadorable.dtb		\
 	cn9130-db-A.dtb				\
 	cn9130-db-B.dtb				\
+	cn9130-cex7-A.dtb			\
 	cn9131-db-A.dtb				\
 	cn9131-db-B.dtb				\
+	cn9131-cex7-A.dtb			\
 	cn9132-db-A.dtb				\
 	cn9132-db-B.dtb				\
+	cn9132-cex7-A.dtb			\
 	cn9130-crb-A.dtb			\
 	cn9130-crb-B.dtb			\
 	cn9130-crb-C.dtb			\
 	cn9130-cf-pro.dtb			\
-	cn9130-cf-base.dtb
+	cn9130-cf-base.dtb			\
+	cn9130-bldn-mbv.dtb                  	\
+	cn9131-bldn-mbv.dtb                     \
+	cn9130-cf-solidwan.dtb                  \
+	cn9131-cf-solidwan.dtb
+
 
 dtb-$(CONFIG_ARCH_UNIPHIER_LD11) += \
 	uniphier-ld11-global.dtb \

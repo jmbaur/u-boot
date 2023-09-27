@@ -34,6 +34,11 @@
 			interrupt-parent = <&gic>;
 			ranges = <0x0 U64_TO_U32_H(CP110_BASE) U64_TO_U32_L(CP110_BASE) 0x2000000>;
 
+
+/*			CP110_LABEL(ser1): ser@15
+
+*/
+
 			CP110_LABEL(mdio): mdio@12a200 {
 				#address-cells = <1>;
 				#size-cells = <0>;
@@ -43,12 +48,30 @@
 				status = "disabled";
 			};
 
+			CP110_LABEL(mdio2): mdio@12a400 {
+				#address-cells = <1>;
+				#size-cells = <0>;
+				compatible = "marvell,orion-mdio";
+				reg = <0x12a200 0x10>;
+				mdio-name = CP110_STRING_LABEL(mdio);
+				status = "disabled";
+			};
+
 			CP110_LABEL(xmdio): mdio@12a600 {
 				#address-cells = <1>;
 				#size-cells = <0>;
 				compatible = "marvell,xmdio";
 				reg = <0x12a600 0x200>;
 				device-name = CP110_STRING_LABEL(xmdio);
+				status = "disabled";
+			};
+
+			CP110_LABEL(xxmdio): mdio@12a900 {
+				#address-cells = <1>;
+				#size-cells = <0>;
+				compatible = "marvell,xmdio";
+				reg = <0x12a600 0x200>;
+				mdio-name = CP110_STRING_LABEL(xxmdio);
 				status = "disabled";
 			};
 

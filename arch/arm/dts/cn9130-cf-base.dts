@@ -145,6 +145,7 @@
 	pinctrl-0 = <&cp0_i2c0_pins>;
 	status = "okay";
 	clock-frequency = <100000>;
+
 	/*
 	 * PCA9655 GPIO expander, up to 1MHz clock.
 	 *  0-CON3 CLKREQ#
@@ -228,13 +229,12 @@
 		pagesize = <8>;
 	};
 
-	/* M24C02-WMN6TP / ST24C02WP */
+	/* M24C02-WMN6TP */
 	som_eeprom@53 {
 		compatible = "atmel,24c02";
 		reg = <0x53>;
-		pagesize = <8>;
+		pagesize = <16>;
 	};
-
 };
 
 &cp0_i2c1 {
