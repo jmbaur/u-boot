@@ -685,3 +685,5 @@ config LIB_ELF
 	  This supports fir 32 bit and 64 bit versions.
 
 endmenu
+
+source lib/tlv/Kconfig

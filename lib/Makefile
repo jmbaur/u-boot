@@ -126,6 +126,8 @@ obj-$(CONFIG_OID_REGISTRY) += oid_registry.o
 obj-$(CONFIG_SSCANF) += sscanf.o
 endif
 
+obj-$(CONFIG_$(SPL_)EEPROM_TLV_LIB) += tlv/
+
 obj-y += date.o
 obj-$(CONFIG_LIB_ELF) += elf.o
 

@@ -22,6 +22,7 @@ struct __attribute__ ((__packed__)) tlvinfo_header {
 	u8      version;      /* 0x08        Structure version    */
 	u16     totallen;     /* 0x09 - 0x0A Length of all data which follows */
 };
+#define TLV_INFO_HEADER_SIZE sizeof(struct tlvinfo_header)
 
 // Header Field Constants
 #define TLV_INFO_ID_STRING      "TlvInfo"
@@ -38,6 +39,7 @@ struct __attribute__ ((__packed__)) tlvinfo_tlv {
 	u8  length;
 	u8  value[0];
 };
+#define TLV_INFO_ENTRY_SIZE sizeof(struct tlvinfo_tlv)
 
 /* Maximum length of a TLV value in bytes */
 #define TLV_VALUE_MAX_LEN        255
@@ -67,6 +69,13 @@ struct __attribute__ ((__packed__)) tlvinfo_tlv {
 
 /* how many EEPROMs can be used */
 #define TLV_MAX_DEVICES			2
+
+/**
+ * Check whether eeprom device exists.
+ *
+ * @dev: EEPROM device to check.
+ */
+bool exists_tlv_eeprom(int dev);
 
 /**
  * read_tlv_eeprom - Read the EEPROM binary data from the hardware
@@ -133,6 +142,42 @@ int write_tlvinfo_tlv_eeprom(void *eeprom, int dev);
  *  eeprom_index parameter if the TLV is found.
  */
 bool tlvinfo_find_tlv(u8 *eeprom, u8 tcode, int *eeprom_index);
+
+/**
+ *  tlvinfo_add_tlv
+ *
+ *  This function adds a TLV to the EEPROM, converting the value (a string) to
+ *  the format in which it will be stored in the EEPROM.
+ * @eeprom: Pointer to buffer to hold the binary data. Must point to a buffer
+ *          of size at least TLV_INFO_MAX_LEN.
+ * @code The TLV Code for the new entry.
+ * @eeprom_index success offset into EEPROM where the new entry has been stored
+ *
+ */
+bool tlvinfo_add_tlv(u8 *eeprom, int code, char *strval);
+
+/**
+ *  tlvinfo_delete_tlv
+ *
+ *  This function deletes the TLV with the specified type code from the
+ *  EEPROM.
+ * @eeprom: Pointer to buffer to hold the binary data. Must point to a buffer
+ *          of size at least TLV_INFO_MAX_LEN.
+ * @code The TLV Code of the entry to delete.
+ */
+bool tlvinfo_delete_tlv(u8 *eeprom, u8 code);
+
+/**
+ * Read the TLV entry with specified code to a buffer as terminated C string.
+ * @eeprom: Pointer to buffer holding the TLV EEPROM binary data.
+ * @code:   The TLV Code of the entry to read.
+ * @buffer: Pointer to buffer where the value will be stored. Must have capacity
+ *          for the string representation of the data including null terminator.
+ * @length: size of the buffer where the value will be stored.
+ *
+ * Return length of string on success, -1 on error.
+ */
+ssize_t tlvinfo_read_tlv(u8 *eeprom, u8 code, u8 *buffer, size_t length);
 
 /**
  *  tlvinfo_update_crc
