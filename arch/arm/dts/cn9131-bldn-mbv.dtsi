@@ -28,8 +28,8 @@
        aliases {
                gpio3 = &cp1_gpio0;
                gpio4 = &cp1_gpio1;
-               fuse5 = &cp1_ld_efuse0; /* bank 68 RO */
-               fuse6 = &cp1_ld_efuse1; /* bank 69 RW */
+               // fuse5 = &cp1_ld_efuse0; /* bank 68 RO */
+               // fuse6 = &cp1_ld_efuse1; /* bank 69 RW */
        };
 	cp1 {
                 config-space {
@@ -62,13 +62,13 @@
         };
 };
 
-&cp1_ld_efuse0 {
-       status = "disabled";
-};
-
-&cp1_ld_efuse1 {
-       status = "disabled";
-};
+// &cp1_ld_efuse0 {
+//        status = "disabled";
+// };
+//
+// &cp1_ld_efuse1 {
+//        status = "disabled";
+// };
 
 &cp1_i2c1 {
        pinctrl-names = "default";

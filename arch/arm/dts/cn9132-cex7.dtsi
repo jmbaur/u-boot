@@ -29,8 +29,8 @@
 	aliases {
 		gpio5 = &cp2_gpio0;
 		gpio6 = &cp2_gpio1;
-		fuse7 = &cp2_ld_efuse0;	/* bank 70 RO */
-		fuse8 = &cp2_ld_efuse1;	/* bank 71 RW */
+		// fuse7 = &cp2_ld_efuse0;	/* bank 70 RO */
+		// fuse8 = &cp2_ld_efuse1;	/* bank 71 RW */
 	};
 
 };

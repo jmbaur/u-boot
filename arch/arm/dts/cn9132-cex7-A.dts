@@ -42,9 +42,9 @@
 	};
 };
 
-&cp2_ld_efuse1 {
-	status = "okay";
-};
+// &cp2_ld_efuse1 {
+// 	status = "okay";
+// };
 
 &cp2_ethernet {
 	status = "okay";
