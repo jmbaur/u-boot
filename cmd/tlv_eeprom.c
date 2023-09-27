@@ -1,4 +1,4 @@
-#include <string.h>
+#include <command.h>
 #include <linux/kernel.h>
 #include <stdio.h>
 #include <tlv_eeprom.h>
