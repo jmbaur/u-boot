@@ -1,3 +1,4 @@
+#include <string.h>
 #include <linux/kernel.h>
 #include <stdio.h>
 #include <tlv_eeprom.h>
@@ -7,7 +8,7 @@
 static u8 eeprom[TLV_INFO_MAX_LEN];
 
 // TODO(jared): is this needed?
-// static unsigned int current_dev;
+static unsigned int current_dev;
 
 #define to_header(p) ((struct tlvinfo_header *)p)
 #define to_entry(p) ((struct tlvinfo_tlv *)p)
@@ -347,4 +348,4 @@ U_BOOT_CMD(tlv_eeprom, 4, 1,  do_tlv_eeprom,
 	   "    - Use 'tlv_eeprom write' to make changes permanent.\n"
 	   "tlv_eeprom list\n"
 	   "    - List the understood TLV codes and names.\n"
-	);
+);
