@@ -1,0 +1,10 @@
+static inline bool is_digit(char c) - used inside set commands - can be internal
+static inline bool is_valid_tlv(struct tlvinfo_tlv *tlv) - maybe api, maybe internal
+static inline u8 is_hex(char p) - internal
+static bool is_checksum_valid(u8 *eeprom) - make api
+
+static int read_eeprom(int devnum, u8 *eeprom)
+static void show_tlv_devices(int current_dev = -1)
+int write_tlv_eeprom(int dev, void *eeprom, int len)
+int populate_serial_number(int devnum)?
+static int prog_eeprom(int devnum, u8 *eeprom)

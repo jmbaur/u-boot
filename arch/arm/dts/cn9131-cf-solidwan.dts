@@ -1,0 +1,54 @@
+/*
+ * Copyright (C) 2020 SolidRun ltd.
+ *
+ * SPDX-License-Identifier:    GPL-2.0
+ * https://spdx.org/licenses
+ */
+
+/* cn9131-cex7-A */
+
+#include "cn9130-cf-solidwan.dts"
+#include "cn9131-cf-solidwan.dtsi"
+
+/ {
+	model = "SolidRun CN9131 SolidWAN";
+	compatible = "marvell,cn9131-db", "marvell,armada-ap806-quad",
+				 "marvell,armada-ap806";
+};
+
+&cp1_comphy {
+	/* Serdes Configuration:
+	*	Lane 0: PCIe
+	*	Lane 1: SATA
+	*	Lane 2: USB3
+	*	Lane 3: SGMII
+	*	Lane 4: XFI
+	*	Lane 5: SGMII
+	*/
+	phy0 {
+		phy-type = <COMPHY_TYPE_PEX0>;
+	};
+
+	phy1 {
+		phy-type = <COMPHY_TYPE_SATA0>;
+	};
+
+	phy2 {
+		phy-type = <COMPHY_TYPE_USB3_HOST1>;
+	};
+
+	phy3 {
+		phy-type = <COMPHY_TYPE_SGMII1>;
+		phy-speed = <COMPHY_SPEED_1_25G>;
+	};
+
+	phy4 {
+		phy-type = <COMPHY_TYPE_SFI0>;
+		phy-speed = <COMPHY_SPEED_10_3125G>;
+	};
+
+	phy5 {
+		phy-type = <COMPHY_TYPE_SGMII2>;
+		phy-speed = <COMPHY_SPEED_1_25G>;
+	};
+};

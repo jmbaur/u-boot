@@ -1,0 +1,136 @@
+/*
+ * Copyright (C) 2020 SolidRun ltd.
+ *
+ * SPDX-License-Identifier:    GPL-2.0
+ * https://spdx.org/licenses
+ */
+
+#include "cn9131-cex7-A.dts"
+#include "cn9132-cex7.dtsi"
+
+/ {
+	model = "SolidRun CN9132 based COM express type 7";
+	compatible = "marvell,cn9132-db", "marvell,armada-ap806-quad",
+		     "marvell,armada-ap806";
+};
+
+&cp2_comphy {
+	phy0 {
+		phy-type = <COMPHY_TYPE_PEX0>;
+	};
+
+	phy1 {
+		phy-type = <COMPHY_TYPE_USB3_HOST0>;
+	};
+
+	phy2 {
+		phy-type = <COMPHY_TYPE_SFI0>;
+	//	phy-speed = <COMPHY_SPEED_5_15625G>;
+		phy-speed = <COMPHY_SPEED_10_3125G>;
+	};
+
+	phy3 {
+		phy-type = <COMPHY_TYPE_SATA1>;
+	};
+
+	phy4 {
+		phy-type = <COMPHY_TYPE_PEX1>;
+	};
+
+	phy5 {
+		phy-type = <COMPHY_TYPE_PEX2>;
+	};
+};
+
+&cp2_ld_efuse1 {
+	status = "okay";
+};
+
+&cp2_ethernet {
+	status = "okay";
+};
+
+/* PHY1 */
+&cp2_eth0 {
+	status = "okay";
+	phy-mode = "sfi";
+	phy = <&sfi_phy_cp2_0>;
+};
+
+/* AI Module */
+&cp2_pcie0 {
+	num-lanes = <1>;
+	status = "okay";
+};
+
+/* NVMe1 */
+&cp2_pcie2 {
+	num-lanes = <1>;
+	status = "okay";
+};
+
+/* SATA0 */
+&cp2_sata0 {
+        status = "okay";
+};
+
+/* USB Hub */
+&cp2_usb3_0 {
+        status = "okay";
+};
+
+&cp2_pinctl {
+	/* MPP Bus:
+	*	[0-11]		GPIO
+	*	[12-26]		NC
+	*	[27]		GPIO
+	*	[28-30]		PTP
+	*	[31-32]		GPIO
+	*	[33-34]		NC
+	*	[35-36]		I2C1
+	*	[37-38]		XMDIO (XSMI)
+	*	[39]		NC
+	*	[40]		GPIO
+	*	[41]		NC
+	*	[42-43]		GPIO
+	*	[44-49]		NC
+	*	[50]		SFP_INT
+	*	[51-54]		NC
+	*	[55-56]		GPIO
+	*	[57-62]		NC
+	*/
+		/*   0    1    2    3    4    5    6    7    8    9 */
+	pin-func = < 0x0  0x0  0x0  0x0  0x0  0x0  0x0  0x0  0x0  0x0
+		     0x0  0x0  0xff 0xff 0xff 0xff 0xff 0xff 0xff 0xff
+		     0xff 0xff 0xff 0xff 0xff 0xff 0xff 0x0  0x7  0x7
+		     0x7  0x0  0x0  0xff 0xff 0x2  0x2  0x8  0x8  0xff
+		     0x0  0xff 0x0  0x0  0xff 0xff 0xff 0xff 0xff 0xff
+		     0x0  0xff 0xff 0xff 0xff 0x0  0x0  0xff 0xff 0xff
+		     0xff 0xff 0xff >;
+};
+
+
+&cp2_xxmdio {
+        status = "okay";
+        pinctrl-0 = <&cp2_xmdio_pins>;
+        sfi_phy_cp2_0: ethernet-phy@0 {
+                reg = <0>;
+        };
+};
+
+
+
+&cp2_pinctl {
+        compatible = "marvell,mvebu-pinctrl",
+                     "marvell,cp115-standalone-pinctrl";
+        bank-name ="cp2-110";
+
+        cp2_xmdio_pins: cp2-xmdio-pins-0 {
+                marvell,pins = < 37 38 >;
+                marvell,function = <8>;
+        };
+        cp2_i2c1_pins: cp2-i2c-pins-0 {
+                marvell,pins = < 35 36 >;
+                marvell,function = <2>;
+        };
+};

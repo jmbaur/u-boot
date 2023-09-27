@@ -1,0 +1,5 @@
+config EEPROM_TLV_LIB
+	bool "Support EEPROM TLV library"
+	depends on I2C_EEPROM
+	help
+	  Selecting this option will enable the shared EEPROM TLV library code.

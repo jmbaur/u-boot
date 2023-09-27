@@ -1,0 +1,46 @@
+/*
+ * Copyright (C) 2020 SolidRun ltd.
+ *
+ * SPDX-License-Identifier:    GPL-2.0
+ * https://spdx.org/licenses
+ */
+
+/* cn9131-bldn mbv-a/b */
+#include "cn9130-bldn-mbv.dts"
+#include "cn9131-bldn-mbv.dtsi"
+
+/ {
+	model = "Belden CN9131 based Platform";
+	compatible =	"marvell,cn9131-db", "marvell,armada-ap806-quad",
+			"marvell,armada-ap806";
+};
+
+&cp1_comphy {
+	/* Serdes Configuration:
+	*	Lane 0: PCIe0 (x1)
+	*	Lane 1: USB3
+	*	Lane 2: ETH PORT 10GE
+	*	Lane 3: NC
+	*	Lane 4: PCIE1 X1
+	*	Lane 5: PCIe2 X1
+	*/
+	phy0 {
+		phy-type = <COMPHY_TYPE_PEX0>;
+	};
+	phy1 {
+		phy-type = <COMPHY_TYPE_USB3_HOST0>;
+	};
+	phy2 {
+		phy-type = <COMPHY_TYPE_SFI0>;
+		phy-speed = <COMPHY_SPEED_10_3125G>;
+	};
+	phy3 {
+		phy-type = <COMPHY_TYPE_SATA1>;
+	};
+	phy4 {
+		phy-type = <COMPHY_TYPE_PEX1>;
+	};
+	phy5 {
+		phy-type = <COMPHY_TYPE_PEX2>;
+	};
+};
