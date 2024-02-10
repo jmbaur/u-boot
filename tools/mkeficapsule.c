@@ -76,7 +76,7 @@ static void print_usage(void)
 
 /**
  * auth_context - authentication context
- * @key_file:	Path to a private key file
+ * @key_file_name:	Path to a private key file or PKCS11 URI
  * @cert_file:	Path to a certificate file
  * @image_data:	Pointer to firmware data
  * @image_size:	Size of firmware data
@@ -84,12 +84,12 @@ static void print_usage(void)
  * @sig_data:	Signature data
  * @sig_size:	Size of signature data
  *
- * Data structure used in create_auth_data(). @key_file through
+ * Data structure used in create_auth_data(). @key_file_name through
  * @image_size are input parameters. @auth, @sig_data and @sig_size
  * are filled in by create_auth_data().
  */
 struct auth_context {
-	char *key_file;
+	char *key_file_name;
 	char *cert_file;
 	uint8_t *image_data;
 	size_t image_size;
@@ -216,13 +216,6 @@ static int create_auth_data(struct auth_context *ctx)
 		return -1;
 	cert.size = file_size;
 
-	ret = read_bin_file(ctx->key_file, &key.data, &file_size);
-	if (ret < 0)
-		return -1;
-	if (file_size > UINT_MAX)
-		return -1;
-	key.size = file_size;
-
 	/*
 	 * For debugging,
 	 * gnutls_global_set_time_function(mytime);
@@ -245,13 +238,54 @@ static int create_auth_data(struct auth_context *ctx)
 	}
 
 	/* load a private key */
-	ret = gnutls_privkey_import_x509_raw(pkey, &key, GNUTLS_X509_FMT_PEM,
-					     0, 0);
-	if (ret < 0) {
-		fprintf(stderr,
-			"error in gnutls_privkey_import_x509_raw(): %s\n",
-			gnutls_strerror(ret));
-		return -1;
+	if (!strncmp(ctx->key_file_name, "pkcs11:", 7)) {
+		ret = gnutls_pkcs11_init(GNUTLS_PKCS11_FLAG_AUTO, NULL);
+		if (ret < 0)
+			goto pkcs11_done;
+
+		gnutls_pkcs11_privkey_t pkcs11_key;
+		ret = gnutls_pkcs11_privkey_init(&pkcs11_key);
+		if (ret < 0)
+			goto pkcs11_done;
+
+		/* pkcs11_key-> */
+
+		printf("using pkcs11 URI: %s\n", ctx->key_file_name);
+		ret = gnutls_pkcs11_privkey_import_url(pkcs11_key, ctx->key_file_name, GNUTLS_PKCS11_FLAG_AUTO);
+		printf("gnutls_pkcs11_privkey_import_url: %d\n", ret);
+		if (ret < 0) {
+			fprintf(stderr, "Error in %s:%d: %s\n", __func__, __LINE__,
+				gnutls_strerror(ret));
+			goto pkcs11_done;
+		}
+
+		printf("status: %d\n", gnutls_pkcs11_privkey_status (pkcs11_key));
+
+		ret = gnutls_privkey_import_pkcs11(pkey, pkcs11_key, 0);
+
+pkcs11_done:
+		if (pkcs11_key)
+			gnutls_pkcs11_privkey_deinit(pkcs11_key);
+		gnutls_pkcs11_deinit();
+
+		if (ret < 0)
+			return -1;
+	} else {
+		ret = read_bin_file(ctx->key_file_name, &key.data, &file_size);
+		if (ret < 0)
+			return -1;
+		if (file_size > UINT_MAX)
+			return -1;
+		key.size = file_size;
+
+		ret = gnutls_privkey_import_x509_raw(pkey, &key, GNUTLS_X509_FMT_PEM,
+								 0, 0);
+		if (ret < 0) {
+			fprintf(stderr,
+				"error in gnutls_privkey_import_x509_raw(): %s\n",
+				gnutls_strerror(ret));
+			return -1;
+		}
 	}
 
 	/* load x509 certificate */
@@ -457,7 +491,7 @@ static int create_fwbin(char *path, char *bin, efi_guid_t *guid,
 
 	/* first, calculate signature to determine its size */
 	if (privkey_file && cert_file) {
-		auth_context.key_file = privkey_file;
+		auth_context.key_file_name = privkey_file;
 		auth_context.cert_file = cert_file;
 		auth_context.auth.monotonic_count = mcount;
 		auth_context.image_data = buf;
