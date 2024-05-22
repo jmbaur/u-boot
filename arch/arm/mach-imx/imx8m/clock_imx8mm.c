@@ -938,3 +938,124 @@ int board_interface_eth_init(struct udevice *dev, phy_interface_t interface_type
 
 	return -EINVAL;
 }
+
+#ifdef CONFIG_DWC_ETH_QOS
+int set_clk_eqos(enum enet_freq type)
+{
+	u32 target;
+	u32 enet1_ref;
+
+	switch (type) {
+	case ENET_125MHZ:
+		enet1_ref = ENET1_REF_CLK_ROOT_FROM_PLL_ENET_MAIN_125M_CLK;
+		break;
+	case ENET_50MHZ:
+		enet1_ref = ENET1_REF_CLK_ROOT_FROM_PLL_ENET_MAIN_50M_CLK;
+		break;
+	case ENET_25MHZ:
+		enet1_ref = ENET1_REF_CLK_ROOT_FROM_PLL_ENET_MAIN_25M_CLK;
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	/* disable the clock first */
+	clock_enable(CCGR_QOS_ETHENET, 0);
+	clock_enable(CCGR_SDMA2, 0);
+
+	/* set enet axi clock 266Mhz */
+	target = CLK_ROOT_ON | ENET_AXI_CLK_ROOT_FROM_SYS1_PLL_266M |
+		 CLK_ROOT_PRE_DIV(CLK_ROOT_PRE_DIV1) |
+		 CLK_ROOT_POST_DIV(CLK_ROOT_POST_DIV1);
+	clock_set_target_val(ENET_AXI_CLK_ROOT, target);
+
+	target = CLK_ROOT_ON | enet1_ref |
+		 CLK_ROOT_PRE_DIV(CLK_ROOT_PRE_DIV1) |
+		 CLK_ROOT_POST_DIV(CLK_ROOT_POST_DIV1);
+	clock_set_target_val(ENET_QOS_CLK_ROOT, target);
+
+	target = CLK_ROOT_ON |
+		ENET1_TIME_CLK_ROOT_FROM_PLL_ENET_MAIN_100M_CLK |
+		CLK_ROOT_PRE_DIV(CLK_ROOT_PRE_DIV1) |
+		CLK_ROOT_POST_DIV(CLK_ROOT_POST_DIV4);
+	clock_set_target_val(ENET_QOS_TIMER_CLK_ROOT, target);
+
+	/* enable clock */
+	clock_enable(CCGR_QOS_ETHENET, 1);
+	clock_enable(CCGR_SDMA2, 1);
+
+	return 0;
+}
+
+int imx_eqos_txclk_set_rate(ulong rate)
+{
+	u32 val;
+	u32 eqos_post_div;
+
+	/* disable the clock first */
+	clock_enable(CCGR_QOS_ETHENET, 0);
+	clock_enable(CCGR_SDMA2, 0);
+
+	switch (rate) {
+	case 125000000:
+		eqos_post_div = 1;
+		break;
+	case 25000000:
+		eqos_post_div = 125000000 / 25000000;
+		break;
+	case 2500000:
+		eqos_post_div = 125000000 / 2500000;
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	clock_get_target_val(ENET_QOS_CLK_ROOT, &val);
+	val &= ~(CLK_ROOT_PRE_DIV_MASK | CLK_ROOT_POST_DIV_MASK);
+	val |= CLK_ROOT_PRE_DIV(CLK_ROOT_PRE_DIV1) |
+	       CLK_ROOT_POST_DIV(eqos_post_div - 1);
+	clock_set_target_val(ENET_QOS_CLK_ROOT, val);
+
+	/* enable clock */
+	clock_enable(CCGR_QOS_ETHENET, 1);
+	clock_enable(CCGR_SDMA2, 1);
+
+	return 0;
+}
+#endif
+
+#if defined(CONFIG_IMX8MP)
+void init_usb_clk(void)
+{
+	clock_enable(CCGR_USB_MSCALE_PL301, 0);
+	clock_enable(CCGR_USB_PHY_8MP, 0);
+
+	/* HSIOMIX AXI BUS root already been set by ROM */
+
+	/* 100MHz */
+	clock_set_target_val(USB_CORE_REF_CLK_ROOT, CLK_ROOT_ON |
+			     CLK_ROOT_SOURCE_SEL(1));
+	/* 100MHz */
+	clock_set_target_val(USB_PHY_REF_CLK_ROOT, CLK_ROOT_ON |
+			     CLK_ROOT_SOURCE_SEL(1));
+
+	clock_enable(CCGR_USB_MSCALE_PL301, 1);
+	clock_enable(CCGR_USB_PHY_8MP, 1);
+}
+#else
+void enable_usboh3_clk(unsigned char enable)
+{
+	if (enable) {
+		clock_enable(CCGR_USB_MSCALE_PL301, 0);
+		/* 500M */
+		clock_set_target_val(USB_BUS_CLK_ROOT, CLK_ROOT_ON | CLK_ROOT_SOURCE_SEL(1));
+		/* 100M */
+		clock_set_target_val(USB_CORE_REF_CLK_ROOT, CLK_ROOT_ON | CLK_ROOT_SOURCE_SEL(1));
+		/* 100M */
+		clock_set_target_val(USB_PHY_REF_CLK_ROOT, CLK_ROOT_ON | CLK_ROOT_SOURCE_SEL(1));
+		clock_enable(CCGR_USB_MSCALE_PL301, 1);
+	} else {
+		clock_enable(CCGR_USB_MSCALE_PL301, 0);
+	}
+}
+#endif

@@ -32,6 +32,7 @@
 #include <imx_sip.h>
 #include <linux/bitops.h>
 #include <linux/bitfield.h>
+#include <linux/arm-smccc.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -1694,3 +1695,74 @@ const struct rproc_att *imx_bootaux_get_hostmap(void)
 	return hostmap;
 }
 #endif
+
+#ifdef CONFIG_SPL_BUILD
+#ifdef CONFIG_IMX8MP
+#define HSIO_GPR_BASE                               (0x32F10000U)
+#define HSIO_GPR_REG_0_USB_CLOCK_MODULE_EN_SHIFT    (1)
+#define HSIO_GPR_REG_0_USB_CLOCK_MODULE_EN          (0x1U << HSIO_GPR_REG_0_USB_CLOCK_MODULE_EN_SHIFT)
+#endif
+
+static uint32_t gpc_pu_m_core_offset[11] = {
+	0xc00, 0xc40, 0xc80, 0xcc0,
+	0xdc0, 0xe00, 0xe40, 0xe80,
+	0xec0, 0xf00, 0xf40,
+};
+
+#define PGC_PCR				0
+
+void imx_gpc_set_m_core_pgc(unsigned int offset, bool pdn)
+{
+	uint32_t val;
+	uintptr_t reg = GPC_BASE_ADDR + offset;
+
+	val = readl(reg);
+	val &= ~(0x1 << PGC_PCR);
+
+	if(pdn)
+		val |= 0x1 << PGC_PCR;
+	writel(val, reg);
+}
+
+void imx8m_usb_power_domain(uint32_t domain_id, bool on)
+{
+	uint32_t val;
+	uintptr_t reg;
+
+#ifdef CONFIG_IMX8MP
+	if (on) {
+		/* enable usb clock via hsio gpr */
+		reg = readl(HSIO_GPR_BASE);
+		reg |= HSIO_GPR_REG_0_USB_CLOCK_MODULE_EN;
+		writel(reg, HSIO_GPR_BASE);
+	}
+#endif
+
+	imx_gpc_set_m_core_pgc(gpc_pu_m_core_offset[domain_id], true);
+
+	reg = GPC_BASE_ADDR + (on ? 0xf8 : 0x104);
+	val = 1 << (domain_id > 3 ? (domain_id + 3) : domain_id);
+	writel(val, reg);
+	while (readl(reg) & val)
+		;
+	imx_gpc_set_m_core_pgc(gpc_pu_m_core_offset[domain_id], false);
+}
+#endif
+
+int imx8m_usb_power(int usb_id, bool on)
+{
+	if (usb_id > 1)
+		return -EINVAL;
+
+#ifdef CONFIG_SPL_BUILD
+	imx8m_usb_power_domain(2 + usb_id, on);
+#else
+	struct arm_smccc_res res;
+	arm_smccc_smc(IMX_SIP_GPC, IMX_SIP_GPC_PM_DOMAIN,
+			2 + usb_id, on, 0, 0, 0, 0, &res);
+	if (res.a0)
+		return -EPERM;
+#endif
+
+	return 0;
+}
