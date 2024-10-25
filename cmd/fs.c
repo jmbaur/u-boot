@@ -85,6 +85,19 @@ U_BOOT_CMD(
 	"      device type 'interface' instance 'dev'."
 );
 
+U_BOOT_CMD(
+	mv, 5, 1, do_mv_wrapper,
+	"Move a file or directory",
+	"<interface> <dev[:part]> src dest\n"
+	"    - Move a file or directory from 'src' to 'dest' on\n"
+	"      device type 'interface' instance 'dev'."
+);
+static int do_mv_wrapper(struct cmd_tbl *cmdtp, int flag, int argc,
+			     char *const argv[])
+{
+	return do_mv(cmdtp, flag, argc, argv);
+}
+
 static int do_fstype_wrapper(struct cmd_tbl *cmdtp, int flag, int argc,
 			     char *const argv[])
 {

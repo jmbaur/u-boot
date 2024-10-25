@@ -710,6 +710,22 @@ int fs_ln(const char *fname, const char *target)
 	return ret;
 }
 
+int fs_mv(const char *src, const char *dst)
+{
+	struct fstype_info *info = fs_get_info(fs_type);
+	int ret
+
+	ret = info->rename(src, dst);
+
+	if (ret < 0) {
+		log_err("** Unable to move file %s -> %s **\n", src, dst);
+		ret = -1;
+	}
+	fs_close();
+
+	return ret;
+}
+
 int do_size(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[],
 	    int fstype)
 {
@@ -967,6 +983,21 @@ int do_ln(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[],
 		return 1;
 
 	if (fs_ln(argv[3], argv[4]))
+		return 1;
+
+	return 0;
+}
+
+int do_mv(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[],
+		int fstype)
+{
+	if (argc != 5)
+		return CMD_RET_USAGE;
+
+	if (fs_set_blk_dev(argv[1], argv[2], fstype))
+		return 1;
+
+	if (fs_mv(argv[3], argv[4]))
 		return 1;
 
 	return 0;
