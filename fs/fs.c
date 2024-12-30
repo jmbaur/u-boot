@@ -207,7 +207,7 @@ static struct fstype_info fstypes[] = {
 		.write = file_fat_write,
 		.unlink = fat_unlink,
 		.mkdir = fat_mkdir,
-		.rename = fs_rename_unsupported,
+		.rename = fat_rename,
 #else
 		.write = fs_write_unsupported,
 		.unlink = fs_unlink_unsupported,

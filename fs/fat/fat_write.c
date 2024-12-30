@@ -1813,3 +1813,8 @@ exit:
 	free(dotdent);
 	return ret;
 }
+
+int fat_rename(const char *filename, const char *target)
+{
+	return 0;
+}
